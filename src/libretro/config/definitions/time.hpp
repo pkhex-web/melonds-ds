@@ -29,7 +29,8 @@ namespace MelonDsDs::config::definitions {
         "The initial time of the emulated console's internal clock.\n"
         "\n"
         "- Real: Start in sync with your device's clock.\n"
-        "- Synchronized: Synchronize the emulated clock to your device's clock. "
+        "- Synchronized: Synchronize the emulated clock to your device's clock, "
+        "plus or minus a specified offset. "
         "May cause unexpected behavior in some games "
         "when rewinding or fast-forwarding.\n"
         "- Relative: Start in sync with your device's clock, "
@@ -56,8 +57,9 @@ namespace MelonDsDs::config::definitions {
         "Starting Time Offset (Years)",
         nullptr,
         "The number of years to offset the starting time by. "
-        "Only used when Starting Time Mode is Relative. "
-        "Changes take effect at next restart.",
+        "Only used when Starting Time Mode is Relative or Synchronized. "
+        "Changes take effect at next restart in Relative mode, "
+        "and immediately in Synchronized mode.",
         nullptr,
         config::time::CATEGORY,
         {
@@ -112,8 +114,9 @@ namespace MelonDsDs::config::definitions {
         "Starting Time Offset (Days)",
         nullptr,
         "The number of days to offset the starting time by. "
-        "Only used when Starting Time Mode is Relative. "
-        "Changes take effect at next restart.",
+        "Only used when Starting Time Mode is Relative or Synchronized. "
+        "Changes take effect at next restart in Relative mode, "
+        "and immediately in Synchronized mode.",
         nullptr,
         config::time::CATEGORY,
         {
@@ -170,8 +173,9 @@ namespace MelonDsDs::config::definitions {
         "Starting Time Offset (Hours)",
         nullptr,
         "The number of hours to offset the starting time by. "
-        "Only used when Starting Time Mode is Relative. "
-        "Changes take effect at next restart.",
+        "Only used when Starting Time Mode is Relative or Synchronized. "
+        "Changes take effect at next restart in Relative mode, "
+        "and immediately in Synchronized mode.",
         nullptr,
         config::time::CATEGORY,
         {
@@ -232,8 +236,9 @@ namespace MelonDsDs::config::definitions {
         "Starting Time Offset (Minutes)",
         nullptr,
         "The number of minutes to offset the starting time by. "
-        "Only used when Starting Time Mode is Relative. "
-        "Changes take effect at next restart.",
+        "Only used when Starting Time Mode is Relative or Synchronized. "
+        "Changes take effect at next restart in Relative mode, "
+        "and immediately in Synchronized mode.",
         nullptr,
         config::time::CATEGORY,
         {

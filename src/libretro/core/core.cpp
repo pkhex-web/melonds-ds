@@ -205,6 +205,7 @@ void MelonDsDs::CoreState::Run() noexcept {
         // If any settings have changed...
         retro::debug("At least one setting has changed; updating now");
         ParseConfig(Config);
+        _syncClock = Config.StartTimeMode() == StartTimeMode::Sync;
         ApplyConfig(Config);
         UpdateConsole(Config, nds);
     }
@@ -238,7 +239,7 @@ void MelonDsDs::CoreState::Run() noexcept {
         }
 
         if (_syncClock) {
-            SetConsoleTime(nds, LocalTime());
+            SetConsoleTime(nds, LocalTime() + Config.RelativeDateTimeOffset());
         }
 
         // melonDS's compute renderer throws away all of its shaders whenever its settings change,

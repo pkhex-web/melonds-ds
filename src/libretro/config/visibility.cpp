@@ -220,7 +220,7 @@ bool MelonDsDs::CoreOptionVisibility::Update() noexcept {
 
     optional<StartTimeMode> timeMode = ParseStartTimeMode(get_variable(time::START_TIME_MODE));
     bool oldShowRelativeTime = ShowRelativeStartTime;
-    ShowRelativeStartTime = !timeMode || *timeMode == StartTimeMode::Relative;
+    ShowRelativeStartTime = !timeMode || *timeMode == StartTimeMode::Relative || *timeMode == StartTimeMode::Sync;
     if (!VisibilityInitialized || ShowRelativeStartTime != oldShowRelativeTime) {
         set_option_visible(time::RELATIVE_YEAR_OFFSET, ShowRelativeStartTime);
         set_option_visible(time::RELATIVE_DAY_OFFSET, ShowRelativeStartTime);
