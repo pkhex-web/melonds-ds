@@ -51,6 +51,9 @@
 #include <FreeBIOS.h>
 #include <file/config_file.h>
 #include <Net_PCap.h>
+#ifdef HAVE_JIT
+#include <ARMJIT_Global.h>
+#endif
 
 #include "config/constants.hpp"
 #include "config/definitions.hpp"
@@ -393,6 +396,68 @@ void MelonDsDs::config::ParseOsdOptions(CoreConfig& config) noexcept {
     }
 }
 
+#ifdef HAVE_JIT
+#ifndef RETRO_ENVIRONMENT_EXEC_MEM_ALLOC
+#define RETRO_ENVIRONMENT_EXEC_MEM_ALLOC 83
+#define RETRO_ENVIRONMENT_EXEC_MEM_FREE 84
+#define RETRO_EXEC_MEM_MODE_UNAVAILABLE 0
+#define RETRO_EXEC_MEM_MODE_UNRESTRICTED 1
+#define RETRO_EXEC_MEM_MODE_RWX 2
+#define RETRO_EXEC_MEM_MODE_WX_TOGGLE 3
+#define RETRO_EXEC_MEM_MODE_DUAL_MAP 4
+struct retro_exec_mem_alloc {
+    unsigned version;
+    size_t size;
+    unsigned mode;
+    void* rx;
+    void* rw;
+};
+struct retro_exec_mem_free {
+    void* rx;
+};
+#endif
+
+static bool AllocateFrontendCodeMemory(size_t size, void** rx, void** rw) {
+    retro_exec_mem_alloc alloc {1, size, RETRO_EXEC_MEM_MODE_UNAVAILABLE, nullptr, nullptr};
+    if (!retro::environment(RETRO_ENVIRONMENT_EXEC_MEM_ALLOC, &alloc) || !alloc.rx || !alloc.rw)
+        return false;
+    *rx = alloc.rx;
+    *rw = alloc.rw;
+    return true;
+}
+
+static void FreeFrontendCodeMemory(void* rx) {
+    retro_exec_mem_free free {rx};
+    retro::environment(RETRO_ENVIRONMENT_EXEC_MEM_FREE, &free);
+}
+
+// Returns false when the frontend says there's no executable memory to be had.
+static bool UseFrontendCodeMemory() noexcept {
+    using melonDS::ARMJIT_Global::CodeMemoryMode;
+    using melonDS::ARMJIT_Global::SetCodeMemoryAllocator;
+    retro_exec_mem_alloc probe {1, 0, RETRO_EXEC_MEM_MODE_UNAVAILABLE, nullptr, nullptr};
+    if (!retro::environment(RETRO_ENVIRONMENT_EXEC_MEM_ALLOC, &probe)) {
+        SetCodeMemoryAllocator(CodeMemoryMode::Own, nullptr, nullptr);
+        return true;
+    }
+    switch (probe.mode) {
+        case RETRO_EXEC_MEM_MODE_DUAL_MAP:
+        case RETRO_EXEC_MEM_MODE_RWX:
+            SetCodeMemoryAllocator(CodeMemoryMode::DualMap, AllocateFrontendCodeMemory, FreeFrontendCodeMemory);
+            return true;
+        case RETRO_EXEC_MEM_MODE_WX_TOGGLE:
+            SetCodeMemoryAllocator(CodeMemoryMode::WXToggle, AllocateFrontendCodeMemory, FreeFrontendCodeMemory);
+            return true;
+        case RETRO_EXEC_MEM_MODE_UNRESTRICTED:
+            SetCodeMemoryAllocator(CodeMemoryMode::Own, nullptr, nullptr);
+            return true;
+        default:
+            SetCodeMemoryAllocator(CodeMemoryMode::Own, nullptr, nullptr);
+            return false;
+    }
+}
+#endif
+
 static void MelonDsDs::config::ParseJitOptions(CoreConfig& config) noexcept {
 #ifdef HAVE_JIT
     ZoneScopedN(TracyFunction);
@@ -403,6 +468,11 @@ static void MelonDsDs::config::ParseJitOptions(CoreConfig& config) noexcept {
     } else {
         retro::warn("Failed to get value for {}; defaulting to {}", cpu::JIT_ENABLE, values::ENABLED);
         config.SetJitEnable(true);
+    }
+
+    if (!UseFrontendCodeMemory() && config.JitEnable()) {
+        retro::warn("The frontend has no executable memory; running without the JIT");
+        config.SetJitEnable(false);
     }
 
     if (optional<unsigned> value = ParseIntegerInRange(get_variable(cpu::JIT_BLOCK_SIZE), 1, 32)) {
